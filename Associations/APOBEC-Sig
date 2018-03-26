@@ -1,0 +1,84 @@
+### gene expression data #####
+Ctype<-read.table("Pancancer_expr_NM_APOBEC.txt",head=TRUE,stringsAsFactors=FALSE)
+Ctype$Samples<-substr(Ctype$Samples,1,12)
+Ctype<-Ctype[!duplicated(Ctype$Samples),]
+
+#### isoform expression ##### 
+expr<-read.table("APOBEC.iso.expr",head=TRUE,row.names=1,stringsAsFactors=FALSE)
+x1<-rownames(expr)
+expr1<-cbind(x1,expr)
+expr1$x1<-substr(expr1$x1,1,12)
+expr1<-expr1[!duplicated(expr1$x1),]
+rownames(expr1)<-expr1$x1
+expr<-expr1[,-1]
+
+########### APOBEC somatic mutations #####
+dat<-read.table("pancancer.maf_sorted_sum_all_fisher_Pcorr.txt",head=TRUE,sep="\t")
+dat.sub<-dat[,c(1,6,53)]
+dat.sub$Sample<-substr(dat.sub$Sample,1,12)
+dat.sub$Sample<-gsub("-",".",dat.sub$Sample,perl=TRUE)
+dat.sub<-dat.sub[order(dat.sub$Sample),]
+dat.sub<-dat.sub[!duplicated(dat.sub$Sample),]
+
+#### merge data
+
+
+Ctype<-Ctype[Ctype$Samples %in% com,]
+Ctype<-Ctype[order(Ctype$Samples),]
+Ctype<-Ctype[,-1]
+dat.sub<-dat.sub[dat.sub$Sample %in% com,]
+dat.sub<-dat.sub[!duplicated(dat.sub$Sample),]
+expr<-expr[rownames(expr) %in% com,]
+expr<-expr[order(rownames(expr)),]
+
+
+mat<-cbind(dat.sub,Ctype,expr)
+mat<-mat[mat$Cancer %in% Ctypes,]
+
+Sig<-log2(0.1+mat$mutations * mat$X.tCw_to_G.tCw_to_T._per_mut)
+mat<-cbind(mat,Sig)
+
+
+for( type in Ctypes[1:3])
+{
+print(type)
+
+Xt<-mat.n2[mat.n2$Cancer %in% paste(type) & mat.n2$sAPOBEC3A <=0,]
+mA3B<-median(Xt$APOBEC3B)
+
+Xt<-Xt[(Xt$x.t < 0 & Xt$APOBEC3B < mA3B) | Xt$x.t ==0,]
+print(table(Xt$x.t))
+
+
+
+summary(lm(X.tCw_to_G.tCw_to_T._per_mut ~x.t+uc011aoc+ x.t:uc011aoc,data=Xt))
+summary(lm(Sig  ~ x.t+log2(fx+uc011aoc)+x.t:log2(fx+uc011aoc),data=Xt))
+summary(lm(X.tCw_to_G.tCw_to_T._per_mut  ~ x.t+log2(fx+uc011aoc)+x.t:log2(fx+uc011aoc),data=Xt))
+summary(lm(Sig  ~ x.t*uc011aoc,data=Xt))
+
+
+boxplot( log2(Freq)  ~ x.t, data = Xt , add = T)
+}
+
+
+
+Ctypes<-c("BLCA", "BRCA", "CESC", "LUAD", "LUSC", "HNSC", "STAD","PAAD","THCA", "KIRP")
+#Ctypes<-c("BLCA", "BRCA", "CESC", "LUAD", "LUSC", "HNSC", "THCA", "KIRP")
+######## section I: Investigate expression level with signature ########
+com<-intersect(dat.sub$Sample,intersect(Ctype$Samples,rownames(expr)))
+com<-intersect(dat.sub$Sample,intersect(Ctype$Samples,rownames(expr)))
+
+Ctype<-Ctype[Ctype$Samples %in% com,]
+Ctype<-Ctype[order(Ctype$Samples),]
+Ctype<-Ctype[,-1]
+dat.sub<-dat.sub[dat.sub$Sample %in% com,]
+dat.sub<-dat.sub[!duplicated(dat.sub$Sample),]
+expr<-expr[rownames(expr) %in% com,]
+expr<-expr[order(rownames(expr)),]
+
+
+mat<-cbind(dat.sub,Ctype,expr)
+mat<-mat[mat$Cancer %in% Ctypes,]
+
+Sig<-log2(0.1+mat$mutations * mat$X.tCw_to_G.tCw_to_T._per_mut)
+mat<-cbind(mat,Sig)
